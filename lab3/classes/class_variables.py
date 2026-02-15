@@ -1,4 +1,4 @@
-#1 Shared class variable
+#1 
 class MyClass:
     x = 10
 
@@ -6,14 +6,14 @@ a = MyClass()
 b = MyClass()
 print(a.x, b.x)
 
-#2 Changing class variable
+#2 
 class Counter:
     count = 0
 
 Counter.count += 1
 print(Counter.count)
 
-#3 Class variable vs instance variable
+#3 
 class Person:
     species = "Human"
 
@@ -23,7 +23,7 @@ class Person:
 p = Person("Kanat")
 print(p.name, p.species)
 
-#4 Class variable used in method
+#4 
 class Circle:
     pi = 3.14
 
@@ -36,7 +36,7 @@ class Circle:
 c = Circle(5)
 print(c.area())
 
-#5 Class variable as a list
+#5
 class Group:
     members = []
 
