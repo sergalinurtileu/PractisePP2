@@ -1,15 +1,12 @@
 import csv
 import os
 import psycopg2
-# Импортируем оригинальную функцию и загрузчик конфига
+
 from connect import connect as original_connect 
 from config import load_config
 
 def get_connection():
-    """
-    Эта функция-посредник решает проблему с аргументом 'config'.
-    Она сама берет конфиг и передает его в connect.py
-    """
+   
     config = load_config()
     return original_connect(config)
 
@@ -33,10 +30,10 @@ def add_contact():
     print("Contact added.")
 
 def import_csv():
-    # Путь я оставил твой, он выглядит верным для твоего Mac
+
     file_name = "/Users/sergali/Desktop/git/practisePP2/practise1/python_basic/PractisePP2/lab7/contacts.csv"
 
-    if not os.path.exists(file_name):
+    if not os.  h.exists(file_name):
         print(f"Error: File not found at {file_name}")
         return
 
@@ -46,7 +43,7 @@ def import_csv():
 
     with open(file_name, "r", encoding="utf-8") as f:
         reader = csv.reader(f)
-        next(reader, None) # Пропуск заголовка
+        next(reader, None)
 
         for row in reader:
             if len(row) >= 2:

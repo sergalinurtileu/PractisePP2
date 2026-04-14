@@ -2,13 +2,13 @@ import os
 from configparser import ConfigParser
 
 def load_config(filename='database.ini', section='postgresql'):
-    # This creates an absolute path to the file in the script's directory
+  
     script_dir = os.path.dirname(os.path.abspath(__file__))
     path_to_ini = os.path.join(script_dir, filename)
     
     parser = ConfigParser()
     
-    # Check if file actually exists before reading
+
     if not os.path.exists(path_to_ini):
         raise FileNotFoundError(f"The file {path_to_ini} was not found.")
 
