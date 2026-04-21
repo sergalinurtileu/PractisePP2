@@ -1,32 +1,29 @@
 import pygame
 import sys
-from clock import MickeysClock
+from clock import MickeyClock
 
 def main():
     pygame.init()
-    WIDTH, HEIGHT = 800, 850
+    
+    WIDTH, HEIGHT = 800, 700
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("Mickey Clock v2.0 Pro")
+    pygame.display.set_caption("Mickey Mouse Clock")
     
-    center = (WIDTH // 2, HEIGHT // 2 - 40)
-    
-    # ИСПРАВЛЕНО: только 2 аргумента!
-    clock_engine = MickeysClock(screen, center)
-    
+    clock_app = MickeyClock(WIDTH, HEIGHT)
     timer = pygame.time.Clock()
 
-    while True:
+    running = True
+    while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+                running = False
 
-        screen.fill((25, 25, 30)) # Глубокий темный фон
-        
-        clock_engine.update()
-        
+        clock_app.render(screen)
         pygame.display.flip()
-        timer.tick(30)
+        timer.tick(60)
+
+    pygame.quit()
+    sys.exit()
 
 if __name__ == "__main__":
     main()

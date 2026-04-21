@@ -1,92 +1,55 @@
 import pygame
-import time
-import math
+import datetime
+import os
 
-class MickeysClock:
-    def __init__(self, screen: pygame.Surface, center: tuple):
-        self.screen = screen
-        self.center = center
-
-        # Палитра
-        self.RED    = (200, 0, 0)
-        self.WHITE  = (255, 255, 255)
-        self.BLACK  = (0, 0, 0)
-        self.GREEN  = (0, 255, 100)
-        self.BG_DIAL = (240, 240, 240)
-
-        # Шрифты
-        self.font_time = pygame.font.SysFont("Courier New", 60, bold=True)
-        self.font_numbers = pygame.font.SysFont("Arial", 40, bold=True)
-
-    def _draw_arrow(self, angle: float, length: int, thickness: int, color: tuple):
-        """Профессиональная отрисовка стрелки с вектором смещения."""
-        head_size = thickness * 2.5
-        surf_w, surf_h = length + head_size, head_size * 2
+class MickeyClock:
+    def __init__(self, screen_width, screen_height):
+        self.screen_size = (screen_width, screen_height)
+        self.center = pygame.math.Vector2(screen_width // 2, screen_height // 2)
         
-        # Создаем временную поверхность для стрелки
-        arrow_surf = pygame.Surface((surf_w, surf_h), pygame.SRCALPHA)
-        mid_y = surf_h // 2
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        img_dir = os.path.join(base_dir, "images")
 
-        # Рисуем саму стрелку (тело и треугольник)
-        pygame.draw.rect(arrow_surf, color, (0, mid_y - thickness // 2, length, thickness))
-        pygame.draw.polygon(arrow_surf, color, [
-            (length + head_size, mid_y),
-            (length, mid_y - head_size),
-            (length, mid_y + head_size)
-        ])
-
-        # Вращаем
-        rotated_surf = pygame.transform.rotate(arrow_surf, angle)
+        self.bg = pygame.image.load(os.path.join(img_dir, "clock.png"))
+        self.bg = pygame.transform.scale(self.bg, self.screen_size)
         
-        # Вычисляем смещение центра для вращения вокруг "плеча"
-        offset = pygame.math.Vector2(surf_w / 2, 0).rotate(-angle)
-        rect = rotated_surf.get_rect(center=pygame.math.Vector2(self.center) + offset)
+        self.mickey_body = pygame.image.load(os.path.join(img_dir, "mikkey.png")).convert_alpha()
+        self.mickey_body = pygame.transform.scale(self.mickey_body, (380, 500)) 
+        self.mickey_rect = self.mickey_body.get_rect(center=self.center)
         
-        self.screen.blit(rotated_surf, rect)
-
-    def draw_dial(self):
-        """Отрисовка циферблата с делениями."""
-        pygame.draw.circle(self.screen, self.BG_DIAL, self.center, 220)
-        pygame.draw.circle(self.screen, (180, 180, 180), self.center, 220, 3)
+        self.min_hand_orig = pygame.image.load(os.path.join(img_dir, "hand_right_centered.png")).convert_alpha()
+        self.min_hand_orig = pygame.transform.scale(self.min_hand_orig, (200, 300)) 
         
-        for i in range(60):
-            angle = math.radians(i * 6 - 90)
-            is_hour = i % 5 == 0
-            d_start = 195 if is_hour else 208
-            
-            p1 = (self.center[0] + d_start * math.cos(angle), self.center[1] + d_start * math.sin(angle))
-            p2 = (self.center[0] + 215 * math.cos(angle), self.center[1] + 215 * math.sin(angle))
-            
-            pygame.draw.line(self.screen, self.BLACK if is_hour else (150, 150, 150), p1, p2, 3 if is_hour else 1)
-
-            if is_hour:
-                num = str(i // 5 if i != 0 else 12)
-                n_angle = math.radians(i * 6 - 90)
-                nx = self.center[0] + 165 * math.cos(n_angle)
-                ny = self.center[1] + 165 * math.sin(n_angle)
-                txt = self.font_numbers.render(num, True, self.BLACK)
-                self.screen.blit(txt, txt.get_rect(center=(nx, ny)))
-
-    def update(self):
-        """Главный метод отрисовки всего состояния часов."""
-        t = time.localtime()
+        self.sec_hand_orig = pygame.image.load(os.path.join(img_dir, "hand_left_centered.png")).convert_alpha()
+        self.sec_hand_orig = pygame.transform.scale(self.sec_hand_orig, (190, 280)) 
+    def blit_rotate_pivot(self, surface, image, pos, originPos, angle):
+       
+        image_rect = image.get_rect(topleft=(pos[0] - originPos[0], pos[1] - originPos[1]))
+        offset_center_to_pivot = pygame.math.Vector2(pos) - image_rect.center
         
-        # Углы (смещение +90 т.к. в pygame 0 градусов это 3 часа)
-        s_ang = -(t.tm_sec * 6) + 90
-        m_ang = -(t.tm_min * 6) + 90
-        h_ang = -((t.tm_hour % 12) * 30 + t.tm_min * 0.5) + 90
+        rotated_offset = offset_center_to_pivot.rotate(-angle)
+        
+        rotated_image_center = (pos[0] - rotated_offset.x, pos[1] - rotated_offset.y)
+        
+        rotated_image = pygame.transform.rotate(image, angle)
+        rotated_image_rect = rotated_image.get_rect(center=rotated_image_center)
+        
+        surface.blit(rotated_image, rotated_image_rect)
 
-        self.draw_dial()
+    def render(self, surface):
+        surface.blit(self.bg, (0, 0))
+        surface.blit(self.mickey_body, self.mickey_rect.topleft)
+        
+        now = datetime.datetime.now()
+        
+        min_angle = -(now.minute * 6)
+        sec_angle = -(now.second * 6)
 
-        # Стрелки: Часовая, Минутная (Черные), Секундная (Красная)
-        self._draw_arrow(h_ang, 100, 12, self.BLACK)
-        self._draw_arrow(m_ang, 140, 8, self.BLACK)
-        self._draw_arrow(s_ang, 165, 3, self.RED)
+        min_pivot_x = self.min_hand_orig.get_width() // 2
+        min_pivot_y = self.min_hand_orig.get_height()
+        
+        sec_pivot_x = self.sec_hand_orig.get_width() // 2
+        sec_pivot_y = self.sec_hand_orig.get_height() 
 
-        # Центр
-        pygame.draw.circle(self.screen, self.BLACK, self.center, 8)
-
-        # Цифровой дисплей
-        time_str = time.strftime("%H:%M:%S", t)
-        txt = self.font_time.render(time_str, True, self.GREEN)
-        self.screen.blit(txt, txt.get_rect(center=(self.center[0], self.center[1] + 290)))
+        self.blit_rotate_pivot(surface, self.min_hand_orig, self.center, (min_pivot_x, min_pivot_y), min_angle)
+        self.blit_rotate_pivot(surface, self.sec_hand_orig, self.center, (sec_pivot_x, sec_pivot_y), sec_angle)
