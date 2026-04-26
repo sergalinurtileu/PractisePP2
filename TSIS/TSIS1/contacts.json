@@ -1,0 +1,24 @@
+[
+    {
+        "name": "Nurtileu",
+        "email": "nurtileu@example.com",
+        "birthday": "2008-01-07",
+        "group": "Friend",
+        "phones": [
+            {"phone": "87020141850", "type": "mobile"},
+            {"phone": "223344", "type": "home"}
+        ]
+    },
+
+    {
+
+        "name": "Aslan",
+        "email": "Aslan@example.com",
+        "birthday": "2008-01-07",
+        "group": "Friend",
+        "phones": [
+            {"phone": "87016482514", "type": "mobile"},
+            {"phone": "223344", "type": "home"}
+        ]
+    }
+]
