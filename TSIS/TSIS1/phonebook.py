@@ -3,14 +3,24 @@ from connect import connect
 from config import load_config
 
 def execute_query(query, params=None, fetch=False, is_procedure=False):
-    """Helper to handle database connections and execution."""
+    """
+    Generic helper function to manage database connections, cursor execution, 
+    and transaction commits.
+    
+    :param query: SQL string to execute
+    :param params: Tuple of parameters for the SQL query
+    :param fetch: Boolean, if True returns results from the database
+    :param is_procedure: Boolean, indicates if a stored procedure is being called
+    """
     config = load_config()
     try:
+        # Establish connection using context managers for safe resource handling
         with connect(config) as conn:
             with conn.cursor() as cur:
                 cur.execute(query, params)
                 if fetch:
                     return cur.fetchall()
+                # Commit changes for INSERT/UPDATE/DELETE/CALL operations
                 conn.commit()
     except Exception as e:
         print(f"Database Error: {e}")
@@ -19,13 +29,16 @@ def execute_query(query, params=None, fetch=False, is_procedure=False):
 # --- TASK 3.2: Advanced Console Search & Filter ---
 
 def search_all_fields():
+    """Searches for contacts matching a term in names, emails, or phone numbers."""
     q = input("Enter search term (name, email, or phone): ")
+    # Calls the stored DB function search_contacts
     rows = execute_query("SELECT * FROM search_contacts(%s)", (q,), fetch=True)
     
     if rows is None or len(rows) == 0:
         print("\nNo results found.")
         return
 
+    # Formatted console output for better readability
     print(f"\n{'Name':<15} | {'Email':<25} | {'Group':<12} | {'Phones'}")
     print("-" * 95)
     for r in rows:
@@ -36,6 +49,7 @@ def search_all_fields():
         print(f"{name:<15} | {email:<25} | {group:<12} | {phones}")
 
 def filter_by_group():
+    """Displays contacts belonging to a specific group."""
     print("\n--- Available Groups ---")
     groups_list = execute_query("SELECT name FROM groups", fetch=True)
     if groups_list:
@@ -60,6 +74,7 @@ def filter_by_group():
         print(f"\nNo contacts found in group '{group_name}'.")
 
 def sort_contacts():
+    """Allows sorting contacts dynamically by name, birthday, or creation date."""
     print("\nSort by: 1. Name | 2. Birthday | 3. Date Added")
     choice = input("Choice: ")
     order_map = {"1": "first_name", "2": "birthday", "3": "created_at"}
@@ -73,6 +88,7 @@ def sort_contacts():
         print(f"{r[0]:<15} | {r[1]:<25} | {bday}")
 
 def interactive_pagination(limit=5):
+    """Navigates through contacts page-by-page using database-level offset."""
     offset = 0
     while True:
         rows = execute_query("SELECT * FROM get_contacts_paginated(%s, %s)", (limit, offset), fetch=True)
@@ -96,14 +112,14 @@ def interactive_pagination(limit=5):
 # --- PROCEDURES (TASK 3.1 & 3.2) ---
 
 def move_contact_to_group():
-    """Calls Procedure: move_to_group"""
+    """Updates contact's group by calling the 'move_to_group' stored procedure."""
     contact = input("Enter contact name: ")
     group = input("Enter target group name: ")
     execute_query("CALL move_to_group(%s, %s)", (contact, group))
     print(f"Procedure executed: {contact} moved to {group}.")
 
 def add_new_phone():
-    """Calls Procedure: add_phone"""
+    """Adds a phone number to an existing contact via the 'add_phone' stored procedure."""
     contact = input("Enter contact name: ")
     phone = input("Enter phone number: ")
     p_type = input("Enter type (mobile/home/work): ")
@@ -113,6 +129,7 @@ def add_new_phone():
 # --- TASK 3.3: Import / Export ---
 
 def export_json():
+    """Exports all contacts, groups, and phone numbers into a structured JSON file."""
     query = """
         SELECT c.first_name, c.email, c.birthday, g.name, 
                json_agg(json_build_object('phone', p.phone, 'type', p.type)) 
@@ -128,6 +145,7 @@ def export_json():
     print("\nSuccess: Exported to contacts.json")
 
 def import_json():
+    """Imports contacts from JSON and handles duplicates by prompting the user."""
     try:
         with open("contacts.json", "r") as f:
             data = json.load(f)
@@ -135,14 +153,18 @@ def import_json():
         with connect(config) as conn:
             with conn.cursor() as cur:
                 for item in data:
+                    # Check for existing record to prevent duplicates
                     cur.execute("SELECT id FROM contacts WHERE first_name = %s", (item['name'],))
                     if cur.fetchone():
                         if input(f"Overwrite {item['name']}? (y/n): ").lower() != 'y': continue
                         cur.execute("DELETE FROM contacts WHERE first_name = %s", (item['name'],))
                     
+                    # Insert primary contact data
                     cur.execute("INSERT INTO contacts (first_name, email, birthday) VALUES (%s, %s, %s) RETURNING id",
                                 (item['name'], item['email'], item['birthday']))
                     c_id = cur.fetchone()[0]
+                    
+                    # Insert associated phone numbers
                     if item['phones']:
                         for p in item['phones']:
                             cur.execute("INSERT INTO phones (contact_id, phone, type) VALUES (%s, %s, %s)", 
@@ -154,6 +176,7 @@ def import_json():
 # --- MAIN MENU ---
 
 def menu():
+    """Main application loop and navigation menu."""
     while True:
         print("\n" + "="*35)
         print("   TSIS 1: FINAL PHONEBOOK   ")
@@ -177,8 +200,10 @@ def menu():
         elif choice == "6": import_json()
         elif choice == "7": move_contact_to_group()
         elif choice == "8": add_new_phone()
-        elif choice == "0": break
-        else: print("Invalid choice.")
+        elif choice == "0": 
+            print("Exiting application. Goodbye!")
+            break
+        else: print("Invalid choice. Please select 0-8.")
 
 if __name__ == "__main__":
     menu()
